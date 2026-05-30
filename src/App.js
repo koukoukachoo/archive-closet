@@ -61,46 +61,6 @@ function OutfitSheet({ items, imageMap, onClose }) {
   return (
     <div style={{position:'fixed',inset:0,zIndex:300,background:'rgba(0,0,0,0.3)',display:'flex',flexDirection:'column',justifyContent:'flex-end'}} onClick={onClose}>
       <div onClick={e=>e.stopPropagation()} style={{background:'#FAFAF8',borderRadius:'20px 20px 0 0',height:'82%',display:'flex',flexDirection:'column'}}>
-        <div style={{display:'flex',justifyContent:'center',padding:'12px 0 0',flexShrink:0}}><div style={{width:36,height:4,borderRadius:2,background:'#D8D4CE'}}/></div>
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'14px 20px 0',flexShrink:0}}>
-          <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,color:'#1A1714'}}>Build an Outfit</span>
-          <button onClick={onClose} style={{background:'none',border:'none',fontSize:20,color:'#9A928A',cursor:'pointer'}}>✕</button>
-        </div>
-        {outfit.length > 0 && (
-          <div style={{padding:'12px 20px 0',flexShrink:0}}>
-            <div style={{display:'flex',gap:8,overflowX:'auto',paddingBottom:4}}>
-              {outfit.map(item=>(
-                <div key={item.id} style={{flexShrink:0,textAlign:'center'}}>
-                  <div style={{width:56,height:74,backgroundImage:`url(${imageMap[item.image]||item.image})`,backgroundSize:'cover',backgroundPosition:'top center',borderRadius:8,border:'1px solid #D8D4CE'}}/>
-                  <div style={{fontFamily:"'Jost',sans-serif",fontSize:8,color:'#9A928A',marginTop:4,maxWidth:56,lineHeight:1.2}}>{item.name}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-        <div style={{fontFamily:"'Jost',sans-serif",fontSize:9,color:'#B0A89E',letterSpacing:'0.12em',textTransform:'uppercase',padding:'12px 20px 8px',flexShrink:0}}>Select up to 4 pieces</div>
-        <div style={{overflowY:'auto',flex:1,padding:'0 20px 20px',WebkitOverflowScrolling:'touch'}}>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
-            {items.map(item=>{
-              const isSel=sel.includes(item.id);
-              return(
-                <div key={item.id} onClick={()=>toggle(item.id)} style={{cursor:'pointer',border:isSel?'2px solid #1A1714':'2px solid transparent',borderRadius:10,overflow:'hidden',background:'#F0EDE8',position:'relative'}}>
-                  <div style={{height:140,backgroundImage:`url(${imageMap[item.image]||item.image})`,backgroundSize:'cover',backgroundPosition:'top center'}}/>
-                  {isSel&&<div style={{position:'absolute',top:8,right:8,width:20,height:20,background:'#1A1714',borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,color:'#FAFAF8'}}>✓</div>}
-                  <div style={{padding:'8px 10px'}}>
-                    <div style={{fontFamily:"'Jost',sans-serif",fontSize:9,color:'#6B5E4E',letterSpacing:'0.1em',textTransform:'uppercase'}}>{item.brand}</div>
-                    <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:13,color:'#1A1714',lineHeight:1.2}}>{item.name}</div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function UploadSheet({ onClose, onSave }) {
   const [step, setStep] = useState('upload');
   const [imgData, setImgData] = useState(null);
@@ -134,8 +94,18 @@ function UploadSheet({ onClose, onSave }) {
         })
       });
       const data = await res.json();
-      const text = data.content.map(c=>c.text||'').join('');
-      const parsed = JSON.parse(text.replace(/```json|```/g,'').trim());
+      let responseText = '';
+      if (data.content) {
+        responseText = data.content.map(c=>c.text||'').join('');
+      } else if (data.error) {
+        throw new Error(data.error);
+      } else {
+        responseText = JSON.stringify(data);
+      }
+      const clean = responseText.replace(/```json|```/g,'').trim();
+      const jsonMatch = clean.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) throw new Error('No JSON in response');
+      const parsed = JSON.parse(jsonMatch[0]);
       setForm(f=>({...f,...parsed,status:f.status}));
       setStep('review');
     } catch(e) {
@@ -166,64 +136,6 @@ function UploadSheet({ onClose, onSave }) {
             <div>
               <div onClick={()=>fileRef.current.click()} style={{border:'2px dashed #D8D4CE',borderRadius:16,textAlign:'center',cursor:'pointer',background:'#F2F0EC',minHeight:220,display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden'}}>
                 {imgData?<img src={imgData} alt="preview" style={{width:'100%',height:240,objectFit:'cover',objectPosition:'top'}}/>
-                  :<div style={{padding:40}}>
-                    <div style={{fontSize:36,marginBottom:12}}>📷</div>
-                    <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:18,color:'#9A928A',marginBottom:6}}>Tap to upload photo</div>
-                    <div style={{fontFamily:"'Jost',sans-serif",fontSize:10,letterSpacing:'0.15em',textTransform:'uppercase',color:'#C8C4BE'}}>from camera roll or files</div>
-                  </div>}
-              </div>
-              <input ref={fileRef} type="file" accept="image/*" style={{display:'none'}} onChange={e=>handleFile(e.target.files[0])}/>
-              <button onClick={analyzeImage} disabled={!imgData} style={{width:'100%',marginTop:16,padding:16,background:imgData?'#1A1714':'#E8E4DF',border:'none',color:imgData?'#FAFAF8':'#B0A89E',fontFamily:"'Jost',sans-serif",fontSize:13,letterSpacing:'0.15em',textTransform:'uppercase',cursor:imgData?'pointer':'default',borderRadius:12}}>
-                Analyze with AI
-              </button>
-            </div>
-          )}
-          {step==='analyzing'&&(
-            <div style={{textAlign:'center',padding:'40px 0'}}>
-              {imgData&&<img src={imgData} alt="analyzing" style={{width:120,height:160,objectFit:'cover',objectPosition:'top',borderRadius:12,marginBottom:20,opacity:0.6}}/>}
-              <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,color:'#9A928A'}}>Reading your piece...</div>
-              <div style={{fontFamily:"'Jost',sans-serif",fontSize:9,color:'#C8C4BE',letterSpacing:'0.18em',textTransform:'uppercase',marginTop:8}}>Identifying details</div>
-            </div>
-          )}
-          {step==='review'&&(
-            <div style={{display:'flex',flexDirection:'column',gap:14}}>
-              {error&&<div style={{fontFamily:"'Jost',sans-serif",fontSize:12,color:'#9A928A',padding:'10px 14px',background:'#F2F0EC',borderRadius:8}}>{error}</div>}
-              {imgData&&<div style={{borderRadius:12,overflow:'hidden',height:200}}><img src={imgData} alt="item" style={{width:'100%',height:'100%',objectFit:'cover',objectPosition:'top'}}/></div>}
-              <div><label style={lbl}>Item Name</label><input style={inp} value={form.name} onChange={e=>setForm(f=>({...f,name:e.target.value}))} placeholder="e.g. Silk Wrap Dress"/></div>
-              <div><label style={lbl}>Brand</label><input style={inp} value={form.brand} onChange={e=>setForm(f=>({...f,brand:e.target.value}))} placeholder="e.g. Zimmermann"/></div>
-              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
-                <div><label style={lbl}>Category</label>
-                  <select style={inp} value={form.category} onChange={e=>setForm(f=>({...f,category:e.target.value}))}>
-                    {ALL_CATEGORIES.map(c=><option key={c}>{c}</option>)}
-                  </select>
-                </div>
-                <div><label style={lbl}>Status</label>
-                  <select style={inp} value={form.status} onChange={e=>setForm(f=>({...f,status:e.target.value}))}>
-                    <option value="owned">Owned</option><option value="wishlist">Wishlist</option>
-                  </select>
-                </div>
-              </div>
-              <div><label style={lbl}>Color</label>
-                <div style={{display:'flex',gap:8,alignItems:'center'}}>
-                  <input style={{...inp,flex:1}} value={form.color} onChange={e=>setForm(f=>({...f,color:e.target.value}))} placeholder="e.g. Ivory"/>
-                  <input type="color" value={form.colorHex} onChange={e=>setForm(f=>({...f,colorHex:e.target.value}))} style={{width:44,height:44,border:'1px solid #E8E4DF',borderRadius:8,cursor:'pointer',padding:2,flexShrink:0}}/>
-                </div>
-              </div>
-              <div><label style={lbl}>Occasions</label>
-                <div style={{display:'flex',gap:7,flexWrap:'wrap'}}>{ALL_OCCASIONS.map(o=><button key={o} onClick={()=>toggleOcc(o)} style={chip(form.occasions.includes(o))}>{o}</button>)}</div>
-              </div>
-              <div><label style={lbl}>Notes</label><input style={inp} value={form.notes} onChange={e=>setForm(f=>({...f,notes:e.target.value}))} placeholder="Brief style description"/></div>
-              <button onClick={handleSave} disabled={!form.name} style={{width:'100%',padding:16,background:form.name?'#1A1714':'#E8E4DF',border:'none',color:form.name?'#FAFAF8':'#B0A89E',fontFamily:"'Jost',sans-serif",fontSize:13,letterSpacing:'0.15em',textTransform:'uppercase',cursor:form.name?'pointer':'default',borderRadius:12,marginTop:4}}>
-                Save to Closet
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default function App() {
   const [imageMap, setImageMap]         = useState(SEED_IMAGES);
   const [items, setItems]               = useState([]);
