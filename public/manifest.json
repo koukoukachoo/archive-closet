@@ -1,0 +1,13 @@
+{
+  "short_name": "Archive",
+  "name": "Archive — My Closet",
+  "icons": [
+    { "src": "icons/icon-192.png", "type": "image/png", "sizes": "192x192", "purpose": "any maskable" },
+    { "src": "icons/icon-512.png", "type": "image/png", "sizes": "512x512", "purpose": "any maskable" }
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#FAFAF8",
+  "background_color": "#FAFAF8"
+}
